@@ -21,21 +21,47 @@ import sys
 '''
 
 class ControlLaw:
-    def __init__(self):
-        self.percentDiff = 0 # Percent difference of agent's timestamp w/ respect to all timestamps
-        self.numberIterations = 0 # Number of iterations the agent has been significantly different
+    def __init__(self, name):
+        print("Setting new ControlLaw")
+        self.name = name
         self.trust = "high" # Trust level for this agent
+        self.packets_lossed = 0 # Number of iterations the agent has lost a packet
+        self.recurrent_PL = 0
+        self.timeSteps = 0 # Total number of timesteps
+        self.lossProbability = 0.0 # Probability that a packet has dropped
+        self.last_timestep = 0
+        self.is_first_iteration = True
 
 
-    def fuzzyControl(self, diff):
-        self.percentDiff = diff
+    def fuzzyControl(self, pub_timestep):
+        print("Computing Fuzzy for %s" % self.name)
+        self.timeSteps += 1
+        print("Current Time Step: %s" % pub_timestep)
+        print("Expected Time Step: %s" % self.timeSteps)
+
+        if(pub_timestep != self.timeSteps):
+            self.packets_lossed += 1
+        self.lossProbability = (self.packets_lossed)/self.timeSteps
+
+        if self.is_first_iteration:
+            self.is_first_iteration = False
+        else:
+            if(pub_timestep == self.last_timestep):
+                self.recurrent_PL += 1
+
+        print("Number of recurrent packet losses: %s" % self.recurrent_PL)
+
+        self.last_timestep = pub_timestep
+
+
+
         # New Antecedent/Consequent objects hold universe variables and membership
         # functions
-        #possible percent difference: -200% to +200%
-        time_diff_universe = np.arange(-200, 201, 1)
-        #amount of recurrsive timestamps that have been delayed
-        recurrent_universe = np.arange(0, 3, 1)
-        #amount of trust for a particular agent
+        # agent's packet drop probability
+        time_diff_universe = np.arange(0, 1.1, 0.1)
+        # amount of recurrsive timestamps that have been dropped
+        recurrent_universe = np.arange(0, 4, 1)
+        # amount of trust for a particular agent
         trust_algorithm_universe = np.arange(0, 3.1, 0.1)
 
         difference = ctrl.Antecedent(time_diff_universe, 'difference')
@@ -50,9 +76,9 @@ class ControlLaw:
         recurrence.automf(names=recurrent_dictionary)
         trust_algorithm.automf(names=trust_dictionary)
 
-        large_mf = [0, 0, 1]
-        average_mf = [1, 1.8, 2.2]
-        small_mf = [2.2, 2.7, 3.0]
+        large_mf = [0.0, 0.0, 0.75]
+        average_mf = [0.75, 1.5, 2.25]
+        small_mf = [2.25, 3.0, 3.0]
 
         # Custom membership functions can be built interactively with a familiar,
         # Pythonic API
@@ -88,21 +114,19 @@ class ControlLaw:
         # Subsequent runs would return in 1/8 the time!
         sim = ctrl.ControlSystemSimulation(system)
 
-        sim.input['difference'] = self.percentDiff
-        sim.input['recurrence'] = self.numberIterations
+        sim.input['difference'] = self.lossProbability
+        sim.input['recurrence'] = self.recurrent_PL
         sim.compute()
         network_performance = sim.output['trust_algorithm']
 
-        print("difference: %s, recurrence: %s" % (self.percentDiff, self.numberIterations))
+        print("probability of PL: %s, recurrence: %s" % (self.lossProbability, self.recurrent_PL))
         print("Output: %s" % network_performance)
-        if(network_performance < 1.5):
+        if(network_performance < 1):
             print("Trust Level: High")
             self.trust = "high"
-        elif(network_performance > 1.5 and network_performance < 2.5):
+        elif(network_performance > 1 and network_performance < 2):
             print("Trust Level: Average")
             self.trust = "average"
-            self.numberIterations += 1
         else:
             print("Trust Level: Small")
-            self.numberIterations += 1
             self.trust = "small"

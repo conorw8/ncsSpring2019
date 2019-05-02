@@ -7,6 +7,10 @@ import numpy as np
 from control_picker import ControlLaw
 
 timestamps = []
+controller1 = ControlLaw("agent1")
+controller2 = ControlLaw("agent2")
+controller3 = ControlLaw("agent3")
+controller4 = ControlLaw("agent4")
 
 def setup(G):
     # Adding nodes
@@ -19,17 +23,16 @@ def setup(G):
     #plt.show()
 
 def setWeights(G, ts):
-    attrs = {(1, 0): {'weight': float(ts[0])},
-             (2, 0): {'weight': float(ts[1])},
-             (3, 0): {'weight': float(ts[2])},
-             (4, 0): {'weight': float(ts[3])},}
+    print("Setting weights")
+    attrs = {(1, 0): {'weight': ts[0]},
+             (2, 0): {'weight': ts[1]},
+             (3, 0): {'weight': ts[2]},
+             (4, 0): {'weight': ts[3]}}
     nx.set_edge_attributes(G, attrs)
+    print(G[1][0]['weight'])
 
 def setController(G):
-    controller1 = ControlLaw()
-    controller2 = ControlLaw()
-    controller3 = ControlLaw()
-    controller4 = ControlLaw()
+    print("Setting controllers")
 
     controller1.fuzzyControl(G[1][0]['weight'])
     controller2.fuzzyControl(G[2][0]['weight'])
@@ -42,12 +45,13 @@ if __name__ == '__main__':
         # Creating new graph
         G = nx.DiGraph()
         setup(G)
-        for i in range(0, 4):
-            for j in range(1, 5):
-                timestamps.append(random.randrange(-200, 200, 1))
-                timestamps.append(random.randrange(-200, 200, 1))
-                timestamps.append(random.randrange(-200, 200, 1))
-                timestamps.append(random.randrange(-200, 200, 1))
+
+        for j in range(1, 5):
+            timestamps = []
+            timestamps.append(random.randrange(0, 2, 1) * j)
+            timestamps.append(random.randrange(0, 2, 1) * j)
+            timestamps.append(random.randrange(0, 2, 1) * j)
+            timestamps.append(random.randrange(0, 2, 1) * j)
             setWeights(G, timestamps)
             setController(G)
     except:
