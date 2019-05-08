@@ -46,12 +46,34 @@ if __name__ == '__main__':
         G = nx.DiGraph()
         setup(G)
 
-        for j in range(1, 5):
+        lb1Percent = 0.7
+        lb2Percent = 0.1
+        lb3Percent = 0.05
+        lb4Percent = 0.025
+
+        for j in range(0, 101):
             timestamps = []
-            timestamps.append(random.randrange(0, 2, 1) * j)
-            timestamps.append(random.randrange(0, 2, 1) * j)
-            timestamps.append(random.randrange(0, 2, 1) * j)
-            timestamps.append(random.randrange(0, 2, 1) * j)
+            lb1 = random.uniform(0, 1)
+            if(lb1 > lb1Percent):
+                timestamps.append(1 * j)
+            else:
+                timestamps.append(0 * j)
+            lb2 = random.uniform(0, 1)
+            if(lb2 > lb2Percent):
+                timestamps.append(1 * j)
+            else:
+                timestamps.append(0 * j)
+            lb3 = random.uniform(0, 1)
+            if(lb3 > lb3Percent):
+                timestamps.append(1 * j)
+            else:
+                timestamps.append(0 * j)
+            lb4 = random.uniform(0, 1)
+            if(lb4 > lb4Percent):
+                timestamps.append(1 * j)
+            else:
+                timestamps.append(0 * j)
+
             setWeights(G, timestamps)
             setController(G)
     except:
