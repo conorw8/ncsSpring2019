@@ -22,22 +22,23 @@ num_parents_mating = 4
 crossover_location = 5
 
 # Defining the population size.
-pop_size = (sol_per_pop,3,3) # The population will have sol_per_pop chromosome where each chromosome has num_weights genes.
+pop_size = (sol_per_pop,3,2) # The population will have sol_per_pop chromosome where each chromosome has num_weights genes.
 print(pop_size)
 new_population = []
 
 for i in range(sol_per_pop):
-    large_mf_high = random.uniform(0, 0.33)
-    large_mf_middle = random.uniform(0, large_mf_high)
+    large_mf_mean = random.uniform(0, 0.33)
+    large_mf_std = random.uniform(0.01, 0.33)
 
-    average_mf_high = random.uniform(large_mf_high, 0.66)
-    average_mf_middle = random.uniform(large_mf_high, average_mf_high)
+    average_mf_mean = random.uniform(large_mf_mean, 0.66)
+    average_mf_std = random.uniform(0.01, 0.33)
 
-    small_mf_middle = random.uniform(average_mf_high, 1.01)
+    small_mf_mean = random.uniform(average_mf_mean, 1.01)
+    small_mf_std = random.uniform(0.01, 0.33)
 
-    large_population = [round(0.0, 2), round(large_mf_middle, 2), round(large_mf_high, 2)]
-    average_population = [round(large_mf_high - 0.01, 2), round(average_mf_middle, 2), round(average_mf_high, 2)]
-    small_population = [round(average_mf_high - 0.01, 2), round(small_mf_middle, 2), round(1.01, 2)]
+    large_population = [round(large_mf_mean, 2), round(large_mf_std, 2)]
+    average_population = [round(average_mf_mean, 2), round(average_mf_std, 2)]
+    small_population = [round(small_mf_mean, 2), round(small_mf_std, 2)]
 
     new_population.append(np.asarray([large_population, average_population, small_population]))
 
@@ -53,14 +54,14 @@ new_population[5, :] = [-2,   3,   -7, 6,   3,    3]
 """
 
 best_outputs = []
-num_generations = 50
+num_generations = 25
 for generation in range(num_generations):
     print("Generation : ", generation)
     #print(new_population)
     # Measuring the fitness of each chromosome in the population.
-    fitness = GA.cal_pop_fitness(np.asarray(new_population))
-    #print("Fitness")
-    #print(fitness)
+    fitness = GA.cal_pop_fitness(np.asarray(new_population), generation)
+    print("Fitness")
+    print(fitness)
 
     #best_outputs.append(np.max(np.sum(new_population, axis=1)))
     # The best result in the current iteration.
@@ -83,24 +84,23 @@ for generation in range(num_generations):
     print(offspring_mutation)
 
     # Creating the new population based on the parents and offspring.
-    new_population = np.reshape(new_population, [8, 3, 3])
+    new_population = np.reshape(new_population, [8, 3, 2])
     #print(new_population.shape)
     new_population[:4, :, :] = parents
     new_population[4:, :, :] = offspring_mutation
-    #print(new_population)
+    print(new_population)
 
 # Getting the best solution after iterating finishing all generations.
 #At first, the fitness is calculated for each solution in the final generation.
-fitness = GA.cal_pop_fitness(new_population)
+fitness = GA.cal_pop_fitness(new_population, 10)
 # Then return the index of that solution corresponding to the best fitness.
-best_match_idx = np.where(fitness == np.max(fitness))
+best_match = 0
+for i in range(len(fitness)):
+    if fitness[i] > fitness[best_match]:
+        best_match = i
+new_population = np.reshape(new_population, [8, 3, 2])
 
-print("Best solution : ", new_population[best_match_idx, :, :])
-print("Best solution fitness : ", fitness[best_match_idx])
-
-
-import matplotlib.pyplot
-matplotlib.pyplot.plot(best_outputs)
-matplotlib.pyplot.xlabel("Iteration")
-matplotlib.pyplot.ylabel("Fitness")
-matplotlib.pyplot.show()
+print("Best solution : ", new_population[best_match, :, :])
+print("Best solution fitness : ", fitness[best_match])
+controller1 = ControlLaw("agent1")
+trust1 = controller1.fuzzyControl(0, new_population[best_match, 0, :], new_population[best_match, 1, :], new_population[best_match, 2, :], True)

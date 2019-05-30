@@ -33,11 +33,11 @@ class ControlLaw:
         self.is_first_iteration = True
 
 
-    def fuzzyControl(self, pub_timestep, low_diff_mf, medium_diff_mf, high_diff_mf):
+    def fuzzyControl(self, pub_timestep, low_diff_mf, medium_diff_mf, high_diff_mf, generation):
 
-        #print("Computing Fuzzy for %s" % self.name)
-        #print("Current Time Step: %s" % pub_timestep)
-        #print("Expected Time Step: %s" % self.timeSteps)
+        print("Computing Fuzzy for %s" % self.name)
+        print("Current Time Step: %s" % pub_timestep)
+        print("Expected Time Step: %s" % self.timeSteps)
 
         if(pub_timestep != self.timeSteps):
             self.packets_lossed += 1
@@ -51,11 +51,10 @@ class ControlLaw:
             #ifhigh_diff_mf[0] -= 0.01
             #medium_diff_mf[0] -= 0.01
             #print("adjusted mf")
-            if(medium_diff_mf[2] == high_diff_mf[0]):
-                high_diff_mf[0] = high_diff_mf[0] - 0.01
-            print(low_diff_mf)
-            print(medium_diff_mf)
-            print(high_diff_mf)
+            #print(low_diff_mf)
+            #print(medium_diff_mf)
+            #print(high_diff_mf)
+            #self.is_first_iteration = False
             self.is_first_iteration = False
         else:
             self.lossProbability = float(self.packets_lossed)/float(self.timeSteps)
@@ -66,8 +65,8 @@ class ControlLaw:
 
         self.last_timestep = pub_timestep
 
-        print(round(float(self.lossProbability), 2))
-        print(self.recurrent_PL)
+        #print(round(float(self.lossProbability), 2))
+        #print(self.recurrent_PL)
 
         # New Antecedent/Consequent objects hold universe variables and membership
         # functions
@@ -95,14 +94,14 @@ class ControlLaw:
         small_mf = [2.25, 3.0, 3.0]
 
         never_mf = [0, 0, 1]
-        recent_mf = [0, 5, 11]
-        frequent_mf = [10, 30, 50]
+        recent_mf = [0, 1, 2]
+        frequent_mf = [1, 25, 50]
 
         # Custom membership functions can be built interactively with a familiar,
         # Pythonic API
-        difference['high'] = fuzz.trimf(difference.universe, high_diff_mf)
-        difference['medium'] = fuzz.trimf(difference.universe, medium_diff_mf)
-        difference['low'] = fuzz.trimf(difference.universe, low_diff_mf)
+        difference['high'] = fuzz.gaussmf(difference.universe, high_diff_mf[0], high_diff_mf[1])
+        difference['medium'] = fuzz.gaussmf(difference.universe, medium_diff_mf[0], medium_diff_mf[1])
+        difference['low'] = fuzz.gaussmf(difference.universe, low_diff_mf[0], low_diff_mf[1])
 
         recurrence['never'] = fuzz.trimf(recurrence.universe, never_mf)
         recurrence['recent'] = fuzz.trimf(recurrence.universe, recent_mf)
@@ -123,11 +122,14 @@ class ControlLaw:
         rule9 = ctrl.Rule(antecedent=(difference['high'] & recurrence['frequent']), consequent=trust_algorithm['small'], label='rule9')
 
         system = ctrl.ControlSystem(rules=[rule1, rule2, rule3, rule4, rule5, rule6, rule7, rule8, rule9])
-        #difference.view()
-        #recurrence.view()
-        #trust_algorithm.view()
-        #system.view()
-        #plt.show()
+
+        if generation == True:
+            difference.view()
+            #recurrence.view()
+            #trust_algorithm.view()
+            #system.view()
+            plt.show()
+
 
         # Later we intend to run this system with a 21*21 set of inputs, so we allow
         # that many plus one unique runs before results are flushed.
@@ -154,3 +156,4 @@ class ControlLaw:
             self.trust = "small"
 
         return self.trust
+        #return network_performance

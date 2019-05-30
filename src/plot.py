@@ -7,7 +7,7 @@ y = []
 x2 = []
 y2 = []
 
-with open('timeDelay1meter.csv','r') as csvfile:
+with open('../timeDelay1meter.csv','r') as csvfile:
     plots = csv.reader(csvfile, delimiter=',')
     i = 0
     for row in plots:
@@ -15,7 +15,7 @@ with open('timeDelay1meter.csv','r') as csvfile:
         x.append(i)
         i += 1
 
-with open('timeDelay10meter.csv','r') as csvfile:
+with open('../timeDelay10meter.csv','r') as csvfile:
     plots = csv.reader(csvfile, delimiter=',')
     k = 0
     for row in plots:
