@@ -33,8 +33,9 @@ class ControlLaw:
         self.is_first_iteration = True
 
 
-    def fuzzyControl(self, pub_timestep, low_diff_mf, medium_diff_mf, high_diff_mf, generation):
+    def fuzzyControl(self, pub_timestep, low_diff_mf, medium_diff_mf, high_diff_mf, generation, time):
 
+        self.timeSteps = time
         print("Computing Fuzzy for %s" % self.name)
         print("Current Time Step: %s" % pub_timestep)
         print("Expected Time Step: %s" % self.timeSteps)
