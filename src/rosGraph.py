@@ -92,7 +92,7 @@ def setController(G):
         print("AGENT1 IS THE CORRUPTED AGENT WITH A PROBABILITY OF %s%%" % round((100 * (float(score1)/float(iter))), 2))
         corruptedAgent = "agent1"
         #sys.exit()
-    if float(score2)/float(iter) > 0.9:
+    if float(score2)/float(iter) > 0.5:
         print("AGENT2 IS THE CORRUPTED AGENT WITH A PROBABILITY OF %s%%" % (100 * (float(score2)/float(iter))))
         corruptedAgent = "agent2"
         #sys.exit()

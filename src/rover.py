@@ -15,6 +15,7 @@ class Rover:
         self.Kt = Kt
         self.last_error = 0.0
         self.driveToBase = False
+        self.count = 0
 
     def distance(self, leader):
         x_error = leader.x - self.x
@@ -36,7 +37,6 @@ class Rover:
         return (self.Kt * error)
 
     def distanceToBase(self, leader, agent1, agent2, base):
-        #print("in loop")
         velocity = 0.0
         x_error = leader.x - self.x
         y_error = leader.y - self.y
@@ -44,39 +44,54 @@ class Rover:
         y_error1 = agent1.y - self.y
         x_error2 = agent2.x - self.x
         y_error2 = agent2.y - self.y
-        x_baseError = leader.x - self.x
-        y_baseError = leader.y - self.y
+        x_baseError = base[0] - self.x
+        y_baseError = base[1] - self.y
         error = math.sqrt(math.pow(x_error, 2) + math.pow(y_error, 2))
         error1 = math.sqrt(math.pow(x_error1, 2) + math.pow(y_error1, 2))
         error2 = math.sqrt(math.pow(x_error2, 2) + math.pow(y_error2, 2))
+
+        #print("Distance to leader: %s" % error)
+        #print("Distance to constituent1: %s" % error1)
+        #print("Distance to constituent2: %s" % error2)
+
         baseError = math.sqrt(math.pow(x_baseError, 2) + math.pow(y_baseError, 2))
-        if(error < 1.0) and (error1 < 1.0) and (error2 < 1.0):
-            velocity = 0.05
+        if self.driveToBase != True:
+            velocity = 0.3
         else:
-            self.driveToBase = True
-            if(baseError < 1.0):
-                print("stop")
+            if(baseError < 0.25):
+                #print("stop")
                 velocity = 0.0
             else:
                 velocity = 0.1 * baseError
 
         return velocity
 
-    def steerToBase(self, leader, base):
-        #print("in loop")
-        velocity = 0.0
-        if(self.driveToBase == True):
-            print("Heading to the base")
+    def steerToBase(self, leader, agent1, agent2, base):
+        if self.driveToBase == True:
+            print("driving to base")
+            velocity = 0.0
+            #print("Heading to the base")
             x_error = base[0] - self.x
             y_error = base[1] - self.y
             errorToBase = math.radians(math.atan2(y_error, x_error))
-            velocity = self.Kt * errorToBase
+            print("heading error to base: %s" % errorToBase)
+            velocity = 0.5 * errorToBase
         else:
-            print("follow the leader")
-            error = leader.theta - self.theta
-            if error < 0.0:
-                error = self.last_error
-            self.last_error = error
-            velocity = (self.Kt * error)
+            #print("follow the leader")
+            velocity = 0.0
+            if leader.theta > 0.01 and leader.theta < 3.14:
+                if self.count == 80:
+                    self.driveToBase = True
+                    velocity = 0.0
+                else:
+                    velocity = -1.45
+                    self.count += 1
+            else:
+                if self.count == 80:
+                    self.driveToBase = True
+                    velocity = 0.0
+                else:
+                    velocity = -1.45
+                    self.count += 1
 
         return velocity

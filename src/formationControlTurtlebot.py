@@ -24,6 +24,9 @@ def turtle1Callback(data):
     siny_cosp = 2.0 * ((data.pose.pose.orientation.w * data.pose.pose.orientation.z) + (data.pose.pose.orientation.x * data.pose.pose.orientation.y))
     cosy_cosp = 1.0 - (2.0 * ((data.pose.pose.orientation.y * data.pose.pose.orientation.y) + (data.pose.pose.orientation.z * data.pose.pose.orientation.z)))
     rover1.theta = math.atan2(siny_cosp, cosy_cosp)
+    #print("leader x: %s" % rover1.x)
+    #print("leader y: %s" % rover1.y)
+    #print("leader theta: %s" % rover1.theta)
 
 def turtle2Callback(data):
     global rover2
@@ -80,7 +83,7 @@ def drive():
     steering2 = 0.0
     velocity3 = 0.0
     steering3 = 0.0
-    base = [-5, -5]
+    base = [5, 5]
     threshold = 0.1
 
     rate = rospy.Rate(80)
@@ -93,10 +96,10 @@ def drive():
         if(corruptedAgent == "agent2"):
             #initial pose: x = -1, y = -1
             rover2Base = [0.0, 0.0]
-            rover2Base[0] = float(base[0] - rover2.initial_x)
-            rover2Base[1] = float(base[1] - rover2.initial_y)
+            rover2Base[0] = float(base[0] + 1)
+            rover2Base[1] = float(base[1] + 1)
             velocity1 = rover2.distanceToBase(rover1, rover3, rover4, rover2Base)
-            steering1 = rover2.steerToBase(rover1, rover2Base)
+            steering1 = rover2.steerToBase(rover1, rover3, rover4, rover2Base)
         else:
             #compute the distance error between the leader and the agent
             #where linear velocity is v = Kv * error
