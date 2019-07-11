@@ -26,7 +26,7 @@ def turtle1Callback(data):
     rover1.theta = math.atan2(siny_cosp, cosy_cosp)
     #print("leader x: %s" % rover1.x)
     #print("leader y: %s" % rover1.y)
-    #print("leader theta: %s" % rover1.theta)
+    print("leader theta: %s" % rover1.theta)
 
 def turtle2Callback(data):
     global rover2

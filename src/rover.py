@@ -37,6 +37,8 @@ class Rover:
         return (self.Kt * error)
 
     def distanceToBase(self, leader, agent1, agent2, base):
+        print("base")
+        print(base)
         velocity = 0.0
         x_error = leader.x - self.x
         y_error = leader.y - self.y
@@ -58,40 +60,63 @@ class Rover:
         if self.driveToBase != True:
             velocity = 0.3
         else:
-            if(baseError < 0.25):
+            if(baseError < 1):
                 #print("stop")
                 velocity = 0.0
             else:
-                velocity = 0.1 * baseError
+                velocity = 0.2
 
         return velocity
 
     def steerToBase(self, leader, agent1, agent2, base):
+        velocity = 0.0
         if self.driveToBase == True:
-            print("driving to base")
-            velocity = 0.0
-            #print("Heading to the base")
+            #Drive straight to the base
             x_error = base[0] - self.x
             y_error = base[1] - self.y
-            errorToBase = math.radians(math.atan2(y_error, x_error))
-            print("heading error to base: %s" % errorToBase)
-            velocity = 0.5 * errorToBase
+            error = math.radians(math.atan2(y_error, x_error))
+            errorToBase = error - self.theta
+            velocity = (self.Kt/2) * errorToBase
         else:
-            #print("follow the leader")
-            velocity = 0.0
-            if leader.theta > 0.01 and leader.theta < 3.14:
+            if leader.theta > -1.57 and leader.theta < 1.57:
+                #Turn right to leave the formation and get at least 1.5 meters of separation
                 if self.count == 80:
-                    self.driveToBase = True
-                    velocity = 0.0
+                    x_error = leader.x - self.x
+                    y_error = leader.y - self.y
+                    x_error1 = agent1.x - self.x
+                    y_error1 = agent1.y - self.y
+                    x_error2 = agent2.x - self.x
+                    y_error2 = agent2.y - self.y
+                    error = math.sqrt(math.pow(x_error, 2) + math.pow(y_error, 2))
+                    error1 = math.sqrt(math.pow(x_error1, 2) + math.pow(y_error1, 2))
+                    error2 = math.sqrt(math.pow(x_error2, 2) + math.pow(y_error2, 2))
+                    if error > 1.5 and error1 > 1.5 and error2 > 1.5:
+                        self.driveToBase = True
+                        velocity = 0.0
+                    else:
+                        velocity = 0.0
                 else:
                     velocity = -1.45
                     self.count += 1
             else:
+                #Turn left to leave the formation and get at least 1.5 meters of separation
                 if self.count == 80:
-                    self.driveToBase = True
-                    velocity = 0.0
+                    x_error = leader.x - self.x
+                    y_error = leader.y - self.y
+                    x_error1 = agent1.x - self.x
+                    y_error1 = agent1.y - self.y
+                    x_error2 = agent2.x - self.x
+                    y_error2 = agent2.y - self.y
+                    error = math.sqrt(math.pow(x_error, 2) + math.pow(y_error, 2))
+                    error1 = math.sqrt(math.pow(x_error1, 2) + math.pow(y_error1, 2))
+                    error2 = math.sqrt(math.pow(x_error2, 2) + math.pow(y_error2, 2))
+                    if error > 1.5 and error1 > 1.5 and error2 > 1.5:
+                        self.driveToBase = True
+                        velocity = 0.0
+                    else:
+                        velocity = 0.0
                 else:
-                    velocity = -1.45
+                    velocity = 1.45
                     self.count += 1
 
         return velocity
