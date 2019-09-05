@@ -47,6 +47,7 @@ first_point_x = desired_x
 first_point_y = desired_y
 desired_theta = (th0)
 desired_z = 0
+distance = 1
 stop = 0
 V_PID = 0
 G_PID = 0
@@ -63,9 +64,9 @@ G_Integrator = 0
 Kv_p = 0.3
 Kv_i = 0.001
 Kv_d = 0.001
-Kh_p = 0.95
-Kh_i = 0.01
-Kh_d = 0.35
+Kh_p = 750
+Kh_i = 1
+Kh_d = 80
 
 def sgn(a):
    if a < 0:
@@ -137,9 +138,6 @@ if __name__ == '__main__':
 
     rospy.init_node('lilbot_controller_tf2_listener')
     rospy.Subscriber("enable_motors", Int16, enableCallback)
-    goal_pose = rospy.Publisher('/goal_pose', PoseStamped, queue_size=1)
-    desired_pose = PoseStamped()
-    desired_pose.header.frame_id = "/lilbot_3BA615/World Frame"
 
     tfBuffer = tf2_ros.Buffer()
     listener = tf2_ros.TransformListener(tfBuffer)
@@ -152,21 +150,6 @@ if __name__ == '__main__':
        listPoseTopicManagers()
     rate = rospy.Rate(10.0)
     while not rospy.is_shutdown():
-        if(math.sqrt(round(math.pow((round(desired_x, 3) - round(dx, 3)), 2) + math.pow((round(desired_y, 3) - round(dy, 3)), 2), 3)) < 0.2):
-            increment = increment%segments
-            th0 = ((increment-1)*2*math.pi)/segments
-            th = ((increment)*2*math.pi)/segments
-            desired_x = round((x_center+radius*math.cos(th)), 3)
-            desired_y = round((y_center+radius*math.sin(th)), 3)
-            desired_theta = round((th0+math.pi/2), 3)
-            increment += 1
-            increment = increment%segments
-            total_increments += 1
-            desired_pose.pose.position.x = desired_x
-            desired_pose.pose.position.y = desired_y
-            if total_increments == (segments*2) + 3:
-                stop = 1
-
         # Check periodically if there are any more topics we should be looking at
         current_time = rospy.get_time()
         if current_time - last_time > 60:
@@ -195,7 +178,7 @@ if __name__ == '__main__':
                 """
                 dx = round(trans.transform.translation.x, 3)
                 dy = round(trans.transform.translation.y, 3)
-                d = math.sqrt(dx**2+dy**2)
+                d = math.sqrt((dx-x_center)**2+(dy-y_center)**2)
                 path.append([dx, dy])
 
                 print "Distance to target: ", d
@@ -210,46 +193,17 @@ if __name__ == '__main__':
                 roll_trans = euler_trans[0]
                 pitch_trans = euler_trans[1]
                 yaw_trans = round(euler_trans[2], 3)
-                print("Increment: %s" % increment)
-                print("xg: %s" % desired_x)
-                print("yg: %s" % desired_y)
-                print("x0: %s" % dx)
-                print("y0: %s" % dy)
                 print("theta0: %s" % yaw_trans)
-                v_error = math.sqrt(math.pow((desired_x - dx), 2) + math.pow((desired_y - dy), 2))
-                desired_heading = math.degrees(math.atan2((desired_y - dy), (desired_x - dx)) % (2 * math.pi))
-                current_heading = math.degrees(yaw_trans % (2 * math.pi))
-                if math.fabs(desired_x) == 0.0 and math.fabs(desired_y) == 0.0:
-                    if(desired_heading < 180):
-                        desired_heading += 360
-                if desired_heading >= 0.0 and desired_heading <= 90.0:
-                    if current_heading >= 270.0 and current_heading <= 360.0:
-                        current_heading -= 360
-                gamma_error = desired_heading - current_heading
+                desired_error = d - distance
 
-                print("v error: %s" % v_error)
-                print("desired heading: %s" % desired_heading)
-                print("current heading: %s" % current_heading)
-                print("gamma error: %s" % gamma_error)
-
-                # PID for Distance error
-                V_Proportional = v_error * Kv_p
-
-                V_Derivative = (v_error - V_Derivator) * Kv_d
-                V_Derivator = v_error
-
-                V_Integrator = v_error + V_Integrator
-                V_Integral = V_Integrator * Kv_i
-
-                V_PID = V_Proportional + V_Integral + V_Derivative
-
+                print("distance error: %s" % desired_error)
                 # PID for Heading error
-                G_Proportional = gamma_error * Kh_p
+                G_Proportional = desired_error * Kh_p
 
-                G_Derivative = ((gamma_error - G_Derivator) * Kh_d) / 0.1
-                G_Derivator = gamma_error
+                G_Derivative = ((desired_error - G_Derivator) * Kh_d) / 0.1
+                G_Derivator = desired_error
 
-                G_Integrator = gamma_error + G_Integrator
+                G_Integrator = desired_error + G_Integrator
                 G_Integrator = np.clip(G_Integrator, -255, 255)
                 G_Integral = G_Integrator * Kh_i
 
@@ -313,68 +267,6 @@ if __name__ == '__main__':
                 # Negation is because wires are backwards... could fix this sometime...
                 msg.data = [int(-xv1),int(-xv2),0,int(-wv)]
                 publishers[publisher].publish(msg)
-                goal_pose.publish(desired_pose)
                 print "publishing"
 
         rate.sleep()
-
-'''
-#TODO: Synchronize poseStamped and netStatsStamped
-import csv
-import math
-import numpy as np
-import matplotlib.pyplot as plt
-N = 64
-x_center = 0
-y_center = 0
-radius = 4
-Kv = 0.5
-Kh = 4
-L = 0.19
-x0 = 0
-y0 = 0
-theta0 = math.pi/2
-path = []
-path.append([x0, y0])
-
-for i in range (0, N+1):
-  th0 = ((i-1)*2*math.pi)/N
-  th = ((i)*2*math.pi)/N
-  #Next Transform
-  xg = (x_center+radius*math.cos(th))
-  yg = (y_center+radius*math.sin(th))
-  theta0 = (th0+math.pi/2)
-
-  #This is this control algorithm e.g. Drivepoint
-  while(math.sqrt(round(math.pow((round(xg, 3) - round(x0, 3)), 2) + math.pow((round(yg, 3) - round(y0, 3)), 2), 3)) > 0.05):
-    v = math.sqrt(round(math.pow((round(xg,3) - round(x0, 3)), 2) + math.pow((round(yg, 3) - round(y0, 3)), 2), 3))*Kv
-    gamma = (math.atan2((round(yg, 3) - round(y0, 3)), (round(xg, 3) - round(x0, 3))) - round(theta0, 3))*Kh
-
-    x_delta = v*math.cos(round(theta0, 3))
-    y_delta = v*math.sin(round(theta0, 3))
-    theta_delta = (v/L)*math.tan(round(gamma, 3))
-
-    x0 += x_delta
-    y0 += y_delta
-    theta0 += theta_delta
-
-  path.append([x0, y0])
-
-with open('path.csv', 'w') as csvFile:
-    writer = csv.writer(csvFile)
-    writer.writerows(path)
-
-csvFile.close()
-
-path = np.asarray(path)
-plt.figure(figsize=(10, 10))
-plt.subplots_adjust(bottom=0.1)
-plt.xlim([-5, 5])
-plt.ylim([-5, 5])
-
-plt.plot(path[:, 0], path[:, 1], '-o', label='True Position')
-plt.xlabel("x")
-plt.ylabel("y")
-
-plt.show()
-'''
