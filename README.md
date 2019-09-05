@@ -3,5 +3,10 @@ Network Control Systems Spring 2019
 
 Add an iptables rule to drop 10% of packets
 ```
-iptables -A INPUT -m statistic --mode random --probability 0.01 -j DROP
+sudo tc qdisc add dev wlan0 root netem loss 10%
+
+```
+Ping the target at a frequency of 10hz
+```
+sudo ping -c 100 -i 0.1 192.168.1.150
 ```
