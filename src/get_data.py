@@ -4,13 +4,16 @@ import rospy
 import geometry_msgs
 import std_msgs
 import numpy as np
+import message_filters
+from learning_tf.msg import Network
 from std_msgs.msg import Int16MultiArray
 from std_msgs.msg import Int16
 from geometry_msgs.msg import PoseStamped
 from tf.transformations import euler_from_quaternion
-from message_filters import ApproximateTimeSynchronizer, Subscriber
+from message_filters import TimeSynchronizer, Subscriber
 
-global txrx_rate
+global txrx_pl
+global txrx_td
 global roll
 global pitch
 global yaw
@@ -20,12 +23,11 @@ global z
 global linear_vel
 global angular_vel
 
-def gotimage(txrx, vel, pose):
-    assert txrx.header.stamp == vel.header.stamp == pose.header.stamp
+def gotimage(txrx, pose):
+    print("Attempting to synch")
     print("success")
-    txrx_rate = txrx.data
-    linear_vel = vel.data[0]
-    angular_vel = vel.data[3]
+    txrx_pl = txrx.packet_loss
+    txrx_td = txrx.time_delay
     x = pose.pose.position.x
     y = pose.pose.position.y
     z = pose.pose.position.z
@@ -39,14 +41,14 @@ def gotimage(txrx, vel, pose):
     pitch = euler[1]
     yaw = euler[2]
 
-    print("TxRx Rate: %s, Roll: %s, Pitch: %s, Yaw: %s, Linear Velocity: %s, Angular Velocity: %s" % (txrx_rate, roll, pitch, yaw, linear_vel, angular_vel))
+    print("Packet Loss: %s, Time Delay: %s, Roll: %s, Pitch: %s, Yaw: %s" % (txrx_pl, txrx_td, roll, pitch, yaw))
 
 rospy.init_node('GetData', anonymous=True)
-txrx_sub = Subscriber("/agent2", Int16)
-vel_sub = Subscriber("/lilbot_13BC26/cmd", Int16MultiArray)
-pose_sub = Subscriber("/lilbot_13BC26/pose", PoseStamped)
+network_sub = message_filters.Subscriber("/network_stats", Network)
+pose_sub = message_filters.Subscriber("/lilbot_3BA615/pose_152", PoseStamped)
 #image_sub = Subscriber("/wide_stereo/left/image_rect_color", sensor_msgs.msg.Image)
 #camera_sub = Subscriber("/wide_stereo/left/camera_info", sensor_msgs.msg.CameraInfo)
 
-ats = ApproximateTimeSynchronizer([txrx_sub, vel_sub, pose_sub], queue_size=1, slop=0.1)
+ats = TimeSynchronizer([network_sub, pose_sub], 10)
 ats.registerCallback(gotimage)
+rospy.spin()

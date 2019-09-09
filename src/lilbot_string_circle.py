@@ -49,24 +49,15 @@ desired_theta = (th0)
 desired_z = 0
 distance = 1
 stop = 0
-V_PID = 0
 G_PID = 0
-V_Proportional = 0
-V_Derivative = 0
-V_Integral = 0
-V_Derivator = 0
-V_Integrator = 0
 G_Proportional = 0
 G_Derivative = 0
 G_Integral = 0
 G_Derivator = 0
 G_Integrator = 0
-Kv_p = 0.3
-Kv_i = 0.001
-Kv_d = 0.001
-Kh_p = 750
-Kh_i = 1
-Kh_d = 80
+Kh_p = 350
+Kh_i = 5
+Kh_d = 350
 
 def sgn(a):
    if a < 0:
@@ -222,20 +213,13 @@ if __name__ == '__main__':
 
                 # front wheel velocity
                 xv1 = 115
-                #xv1 = int(V_PID*velocity_factor)
-                if(math.fabs(xv1) > 250):
-                    xv1 = 250
-                elif(math.fabs(xv1) < 100):
-                    xv1 = 100
                 # rear wheel velocity
                 xv2 = 0
 
                 # steering  velocity
                 wv = int(G_PID*turn_rate_factor)
-                if(wv > 250):
-                    wv = 250
-                elif(wv < -250):
-                    wv = -250
+
+                constrainVelocitiesToCapabilities()
 
                 print("V, GAMMA")
                 print(xv1, wv)
