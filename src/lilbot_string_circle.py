@@ -31,10 +31,6 @@ y_center = 1
 radius = 1
 L = 0.19
 path = []
-#255 = max turn rate for motors, 30 = max turn radius for drive shaft in degrees
-turn_rate_factor = 250/30
-#255 = max forward velocity of motors, 5 = max forward velocity in m/s
-velocity_factor = 250/4.19
 dx = 0
 dy = 0
 th0 = round(((increment-1)*2*math.pi)/segments, 3)
@@ -55,9 +51,24 @@ G_Derivative = 0
 G_Integral = 0
 G_Derivator = 0
 G_Integrator = 0
-Kh_p = 350
-Kh_i = 5
-Kh_d = 350
+error = []
+e_n1 = 0
+max_error = e_n1
+time_series = []
+x_pos = []
+y_pos = []
+first_time = 0
+stamp_time = 0
+last_time = 0
+
+#255 = max turn rate for motors, 30 = max turn radius for drive shaft in degrees
+turn_rate_factor = 1
+#255 = max forward velocity of motors, 5 = max forward velocity in m/s
+velocity_factor = 250/4.19
+Kh_p = 650
+Kh_i = 0.5
+Kh_d = 650
+
 
 def sgn(a):
    if a < 0:
@@ -135,11 +146,10 @@ if __name__ == '__main__':
 
     updateTopicList()
 
-
     # Print the list of publishers that we currently have
     if DEBUG_ENABLED:
        listPoseTopicManagers()
-    rate = rospy.Rate(10.0)
+    rate = rospy.Rate(20.0)
     while not rospy.is_shutdown():
         # Check periodically if there are any more topics we should be looking at
         current_time = rospy.get_time()
@@ -167,6 +177,7 @@ if __name__ == '__main__':
                 """
                        THIS SECTION DESCRIBES THE TRANSFORMATION FROM BASE LINK TO THE ROBOT
                 """
+                stamp_time = trans.header.stamp.to_sec()
                 dx = round(trans.transform.translation.x, 3)
                 dy = round(trans.transform.translation.y, 3)
                 d = math.sqrt((dx-x_center)**2+(dy-y_center)**2)
@@ -186,19 +197,28 @@ if __name__ == '__main__':
                 yaw_trans = round(euler_trans[2], 3)
                 print("theta0: %s" % yaw_trans)
                 desired_error = d - distance
+                error.append(desired_error)
+                curr_time = trans.header.stamp.to_sec()
+                if not first_time:
+                    first_time = curr_time
+                print(curr_time - first_time)
+                time_series.append((curr_time - first_time)*1000)
 
                 print("distance error: %s" % desired_error)
                 # PID for Heading error
                 G_Proportional = desired_error * Kh_p
 
-                G_Derivative = ((desired_error - G_Derivator) * Kh_d) / 0.1
+                delta_t = (stamp_time - last_time)
+                delta_t = (delta_t if delta_t != 0 else 0.1)
+                G_Derivative = ((desired_error - G_Derivator) * Kh_d) / delta_t
                 G_Derivator = desired_error
+                last_time = stamp_time
 
                 G_Integrator = desired_error + G_Integrator
                 G_Integrator = np.clip(G_Integrator, -255, 255)
                 G_Integral = G_Integrator * Kh_i
 
-                G_PID = G_Proportional + G_Integral + G_Derivative
+                G_PID = np.clip(G_Proportional + G_Integral + G_Derivative, -255, 255)
 
                 print("gamma P: %s" % G_Proportional)
                 print("gamma I: %s" % G_Integral)
@@ -212,43 +232,41 @@ if __name__ == '__main__':
                 # Note: You can make a wider range of speed values if xv1 != xv2
 
                 # front wheel velocity
-                xv1 = 115
+                xv1 = 120
                 # rear wheel velocity
                 xv2 = 0
 
                 # steering  velocity
-                wv = int(G_PID*turn_rate_factor)
+                wv = int(G_PID)
 
                 constrainVelocitiesToCapabilities()
 
                 print("V, GAMMA")
                 print(xv1, wv)
 
-            if stop:
-                # Negation is because wires are backwards... could fix this sometime...
+            if len(error) > 500:
                 msg.data = [0,0,0,0]
                 publishers[publisher].publish(msg)
                 print "publishing"
-
-                circle2 = plt.Circle((x_center, y_center), radius, color='r', fill=False)
-
-                ax = plt.gca()
-                ax.cla() # clear things for fresh plot
-
-                # change default range so that new circles will work
-                ax.set_xlim((-5, 5))
-                ax.set_ylim((-5, 5))
-                # some data
                 path = np.asarray(path)
-                ax.plot(path[:, 0], path[:, 1], '-o', label='True Position')
-                # key data point that we are encircling
-                ax.add_artist(circle2)
 
+                plt.plot(path[:, 0], path[:, 1], label='Path')
+                plt.xlabel('x position')
+                plt.ylabel('y position')
+                plt.title('Lilbot Circle Path')
+                plt.legend()
+                plt.show()
+
+                plt.plot(time_series, error, label='Heading Error')
+                plt.xlabel('time (ms)')
+                plt.ylabel('error')
+                plt.title('Lilbot Path Error')
+                plt.legend()
                 plt.show()
 
                 sys.exit(1)
             else:
-                # Negation is because wires are backwards... could fix this sometime...
+                # Negation is because wires are backwards... could fix this sometime.
                 msg.data = [int(-xv1),int(-xv2),0,int(-wv)]
                 publishers[publisher].publish(msg)
                 print "publishing"
